@@ -29,6 +29,7 @@ module Uphold
       @path = request_data.endpoint
       @data = request_data.payload
       @headers = request_data.headers
+      @auth_x_o_auth_basic = request_data.headers['Authorization'].to_s.gsub('Bearer ', '')
     end
 
     def get
@@ -45,7 +46,7 @@ module Uphold
 
     private
 
-    attr_reader :path, :data, :auth, :headers
+    attr_reader :path, :data, :auth, :headers, :auth_x_o_auth_basic
 
     def self.with_valid_response(response)
       return yield unless response.code >= 400
@@ -58,8 +59,11 @@ module Uphold
     end
 
     def options
-      { body: data, headers: headers }.
-        reject { |_k, v| v.nil? }
+      if auth_x_o_auth_basic.present?
+        { body: data, basic_auth: { username: auth_x_o_auth_basic, password: 'X-OAuth-Basic' }, headers: headers }.reject { |_k, v| v.nil? }
+      else
+        { body: data, headers: headers }.reject { |_k, v| v.nil? }
+      end
     end
 
     def log_request_info(http_method, response)
